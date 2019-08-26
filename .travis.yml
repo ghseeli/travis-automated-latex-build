@@ -1,0 +1,60 @@
+sudo: required
+before_install:
+- sudo apt-get update
+- sudo apt-get install liblz4-dev
+- sudo apt-get install liblz4-tool
+- wget http://mirrors.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz -O - | tar -x --gzip
+- mv $(ls | grep install) install-tl
+- ./install-tl/install-tl -profile texlive.profile
+- export PATH=$(pwd)/texlive/bin/x86_64-linux:$PATH
+- sudo apt-get install texlive texlive-latex-recommended texlive-math-extra
+- sudo apt-get install latexmk
+- tlmgr update --self
+- tlmgr update --all
+- tlmgr install $(cat .tlmgr-dep)
+cache:
+script:
+- chmod a+x scripts/build-pdfs.sh
+- scripts/build-pdfs.sh
+# Move PDFs to correct location
+- |
+  for DIR in $(ls -d */ | grep ''); do
+    mkdir "docs/$DIR"
+    for PATH_REL_SRC in $(ls "$DIR"*.pdf | grep ''); do
+      PATH_REL_DEST="docs/$PATH_REL_SRC"
+      echo "Moving $PATH_REL_SRC to docs/$DIR folder"
+      mv "$PATH_REL_SRC" "$PATH_REL_DEST"
+    done
+  done
+- ls docs/**/*
+# Edit webpages to include links for those pdfs
+- cd docs
+- |
+  write_section_links() {
+    DIR_NAME="$1"
+    OUTPUT_FILENAME="$2"
+    OUTPUT_SECTION_TITLE="$3"
+    OUTPUT_LINK_PREFIX="$4"
+    printf "## $OUTPUT_SECTION_TITLE\n" >> "$OUTPUT_FILENAME"
+    for FNAME in $(ls "$DIR_NAME" | grep ''); do
+        NAME="$OUTPUT_LINK_PREFIX""$FNAME"
+        FPATH="$DIR_NAME/$FNAME"
+        printf "[$NAME]($FPATH)  \n" >> "$OUTPUT_FILENAME" # Two spaces before \n tells Markdown to generate <br />
+    done
+    printf "\n" >> "$OUTPUT_FILENAME"
+  }
+# List all files on main page
+- write_section_links "." "README.md" "Links to PDFs"
+### Examples of fancier usage
+# - write_section_links "class-notes" "class-notes.md" "Class Notes" ""
+# - write_section_links "Monographs" "monographs.md" "Monographs" ""
+# - write_section_links "presentations" "presentations.md" "Presentations" ""
+###
+- cd ..
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  local_dir: docs
+  on:
+    branch: master
