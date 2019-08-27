@@ -44,7 +44,7 @@ script:
     printf "\n" >> "$OUTPUT_FILENAME"
   }
 # List all files on main page
-- write_section_links "." "README.md" "Links to PDFs"
+- write_section_links "src" "README.md" "Links to PDFs" ""
 ### Examples of fancier usage
 # - write_section_links "class-notes" "class-notes.md" "Class Notes" ""
 # - write_section_links "Monographs" "monographs.md" "Monographs" ""
